@@ -19,23 +19,52 @@ import { Code } from "@heroui/code";
 
 import { DownloadIcon, RandomIcon } from "@/components/icons";
 import { title, subtitle } from "@/components/primitives";
-import { KEY_LENGTH, randomKey } from "@/lib/crypto";
+import { decryptPack, encryptPack, KEY_LENGTH, randomKey } from "@/lib/crypto";
 
 type Mode = "encrypt" | "decrypt";
-type KeyType = "text" | "file";
 type OutputFile = {
   filename: string;
   description: string;
-  blob?: Blob;
+  blob: Blob;
 };
 
 export default function Home() {
   const [mode, setMode] = useState<Mode>("encrypt");
-  const [keyType, setKeyType] = useState<KeyType>("text");
-  const [zipFile, setZipFile] = useState<File | null>(null);
-  const [textKey, setTextKey] = useState<string>("");
-  const [fileKey, setFileKey] = useState<File | null>(null);
+  const [file, setFile] = useState<File | null>(null);
+  const [key, setKey] = useState<string>("");
   const [outputs, setOutputs] = useState<OutputFile[]>([]);
+
+  const processPack = async () => {
+    if (!file) return alert("Please select a pack file.");
+    //TODO: check key length == 32
+
+    const buffer = await file.arrayBuffer();
+
+    let files: OutputFile[] = [];
+    let zipBlob: Blob;
+    if (mode === "encrypt") {
+      zipBlob = await encryptPack(buffer, key);
+      files.push({
+        filename: "encrypted_" + file.name,
+        description: "Encrypted Pack",
+        blob: zipBlob,
+      });
+      files.push({
+        filename: "encrypted_" + file.name + ".key",
+        description: "Encryption Key",
+        blob: new Blob([key], { type: "text/plain" }),
+      });
+    } else {
+      zipBlob = await decryptPack(buffer, key);
+      files.push({
+        filename: "decrypted_" + file.name,
+        description: "Decrypted Pack",
+        blob: zipBlob,
+      });
+    }
+
+    setOutputs(files);
+  };
 
   return (
     <section className="flex flex-col items-center justify-center gap-4 py-8 md:py-10">
@@ -62,7 +91,7 @@ export default function Home() {
           <Tab key="decrypt" title="Decrypt" />
         </Tabs>
         <Card>
-          <CardBody className="flex flex-col">
+          <CardBody className="flex flex-col gap-4">
             <Input
               isRequired
               accept=".zip,.mcaddon,.mcpack"
@@ -70,71 +99,38 @@ export default function Home() {
               label="File"
               type="file"
               onChange={(e) => {
-                if (e.target.files) setZipFile(e.target.files[0]);
+                if (e.target.files) setFile(e.target.files[0]);
               }}
             />
 
-            <div className="flex flex-col gap-1">
-              <Tabs
-                aria-label="Key Type"
-                selectedKey={keyType}
-                size="sm"
-                variant="underlined"
-                onSelectionChange={(key) => setKeyType(key as KeyType)}
-              >
-                <Tab key="text" title="Text" />
-                <Tab key="file" title="File" />
-              </Tabs>
-              {keyType === "text" && (
-                <Input
-                  isRequired
-                  endContent={
-                    <div className="flex items-center">
-                      {mode === "encrypt" && (
-                        <Button
-                          isIconOnly
-                          as={Link}
-                          size="sm"
-                          variant="light"
-                          onPress={() => {
-                            setTextKey(randomKey());
-                            setFileKey(null);
-                          }}
-                        >
-                          <RandomIcon size={20} />
-                        </Button>
-                      )}
-                    </div>
-                  }
-                  label="Key"
-                  maxLength={KEY_LENGTH}
-                  minLength={KEY_LENGTH}
-                  placeholder="Enter your key"
-                  value={textKey}
-                  onChange={(e) => {
-                    setTextKey(e.target.value);
-                    setFileKey(null);
-                  }}
-                />
-              )}
-
-              {keyType === "file" && (
-                <Input
-                  isRequired
-                  accept=".key"
-                  label="Key"
-                  type="file"
-                  onChange={(e) => {
-                    setTextKey("");
-                    if (e.target.files) setFileKey(e.target.files[0]);
-                  }}
-                />
-              )}
-            </div>
+            <Input
+              isRequired
+              endContent={
+                <div className="flex items-center">
+                  {mode === "encrypt" && (
+                    <Button
+                      isIconOnly
+                      as={Link}
+                      size="sm"
+                      variant="light"
+                      onPress={() => setKey(randomKey())}
+                    >
+                      <RandomIcon size={20} />
+                    </Button>
+                  )}
+                </div>
+              }
+              label="Key"
+              maxLength={KEY_LENGTH}
+              minLength={KEY_LENGTH}
+              placeholder="Enter your key"
+              value={key}
+              onChange={(e) => setKey(e.target.value)}
+            />
           </CardBody>
         </Card>
 
-        <Button color="primary">
+        <Button color="primary" onPress={processPack}>
           {mode === "encrypt" ? "Encrypt" : "Decrypt"}
         </Button>
 
@@ -156,14 +152,14 @@ export default function Home() {
                 </TableCell>
                 <TableCell>{item.description}</TableCell>
                 <TableCell>
-                  {" "}
                   <Link
                     isExternal
                     showAnchorIcon
                     anchorIcon={<DownloadIcon />}
-                    size="sm"
+                    download={item.filename}
+                    href={URL.createObjectURL(item.blob)}
                   >
-                    <p>Download</p>
+                    Download
                   </Link>
                 </TableCell>
               </TableRow>
