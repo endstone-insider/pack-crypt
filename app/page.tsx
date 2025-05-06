@@ -33,15 +33,18 @@ export default function Home() {
   const [file, setFile] = useState<File | null>(null);
   const [key, setKey] = useState<string>("");
   const [outputs, setOutputs] = useState<OutputFile[]>([]);
+  const [busy, setBusy] = useState<boolean>(false);
 
   const processPack = async () => {
     if (!file) return alert("Please select a pack file.");
     //TODO: check key length == 32
 
+    setBusy(true);
     const buffer = await file.arrayBuffer();
 
     let files: OutputFile[] = [];
     let zipBlob: Blob;
+
     if (mode === "encrypt") {
       zipBlob = await encryptPack(buffer, key);
       files.push({
@@ -64,6 +67,7 @@ export default function Home() {
     }
 
     setOutputs(files);
+    setBusy(false);
   };
 
   return (
@@ -130,7 +134,7 @@ export default function Home() {
           </CardBody>
         </Card>
 
-        <Button color="primary" onPress={processPack}>
+        <Button color="primary" isLoading={busy} onPress={processPack}>
           {mode === "encrypt" ? "Encrypt" : "Decrypt"}
         </Button>
 
