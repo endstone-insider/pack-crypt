@@ -1,14 +1,10 @@
 "use client";
 
 import { Tabs, Tab } from "@heroui/tabs";
-import { Card, CardHeader, CardBody, CardFooter } from "@heroui/card";
+import { Card, CardBody } from "@heroui/card";
 import { useState } from "react";
-
-import { title, subtitle } from "@/components/primitives";
-import { DownloadIcon, RandomIcon } from "@/components/icons";
 import { Input } from "@heroui/input";
 import { Button } from "@heroui/button";
-import { RadioGroup, Radio } from "@heroui/radio";
 import { Link } from "@heroui/link";
 import {
   Table,
@@ -21,6 +17,10 @@ import {
 import { Divider } from "@heroui/divider";
 import { Code } from "@heroui/code";
 
+import { DownloadIcon, RandomIcon } from "@/components/icons";
+import { title, subtitle } from "@/components/primitives";
+import { KEY_LENGTH, randomKey } from "@/lib/crypto";
+
 type Mode = "encrypt" | "decrypt";
 type KeyType = "text" | "file";
 type OutputFile = {
@@ -32,13 +32,10 @@ type OutputFile = {
 export default function Home() {
   const [mode, setMode] = useState<Mode>("encrypt");
   const [keyType, setKeyType] = useState<KeyType>("text");
-  const [outputs, setOutputs] = useState<OutputFile[]>([
-    {
-      filename: "encrypted_pack.zip",
-      description: "Encrypted Pack",
-    },
-    { filename: "encrypted_pack.zip.key", description: "Encryption Key" },
-  ]);
+  const [zipFile, setZipFile] = useState<File | null>(null);
+  const [textKey, setTextKey] = useState<string>("");
+  const [fileKey, setFileKey] = useState<File | null>(null);
+  const [outputs, setOutputs] = useState<OutputFile[]>([]);
 
   return (
     <section className="flex flex-col items-center justify-center gap-4 py-8 md:py-10">
@@ -57,7 +54,9 @@ export default function Home() {
         <Tabs
           aria-label="Mode"
           selectedKey={mode}
-          onSelectionChange={(key) => setMode(key as Mode)}
+          onSelectionChange={(key) => {
+            setMode(key as Mode);
+          }}
         >
           <Tab key="encrypt" title="Encrypt" />
           <Tab key="decrypt" title="Decrypt" />
@@ -70,6 +69,9 @@ export default function Home() {
               description="Files are not uploaded to a server, everything is done offline in your browser."
               label="File"
               type="file"
+              onChange={(e) => {
+                if (e.target.files) setZipFile(e.target.files[0]);
+              }}
             />
 
             <div className="flex flex-col gap-1">
@@ -77,8 +79,8 @@ export default function Home() {
                 aria-label="Key Type"
                 selectedKey={keyType}
                 size="sm"
-                onSelectionChange={(key) => setKeyType(key as KeyType)}
                 variant="underlined"
+                onSelectionChange={(key) => setKeyType(key as KeyType)}
               >
                 <Tab key="text" title="Text" />
                 <Tab key="file" title="File" />
@@ -89,19 +91,44 @@ export default function Home() {
                   endContent={
                     <div className="flex items-center">
                       {mode === "encrypt" && (
-                        <Button isIconOnly as={Link} size="sm" variant="light">
+                        <Button
+                          isIconOnly
+                          as={Link}
+                          size="sm"
+                          variant="light"
+                          onPress={() => {
+                            setTextKey(randomKey());
+                            setFileKey(null);
+                          }}
+                        >
                           <RandomIcon size={20} />
                         </Button>
                       )}
                     </div>
                   }
                   label="Key"
+                  maxLength={KEY_LENGTH}
+                  minLength={KEY_LENGTH}
                   placeholder="Enter your key"
+                  value={textKey}
+                  onChange={(e) => {
+                    setTextKey(e.target.value);
+                    setFileKey(null);
+                  }}
                 />
               )}
 
               {keyType === "file" && (
-                <Input isRequired accept=".key" label="Key" type="file" />
+                <Input
+                  isRequired
+                  accept=".key"
+                  label="Key"
+                  type="file"
+                  onChange={(e) => {
+                    setTextKey("");
+                    if (e.target.files) setFileKey(e.target.files[0]);
+                  }}
+                />
               )}
             </div>
           </CardBody>
@@ -113,7 +140,7 @@ export default function Home() {
 
         <Divider />
         <h4 className="font-bold">Output</h4>
-        <Table aria-label="Example static collection table">
+        <Table aria-label="Output files">
           <TableHeader>
             <TableColumn>FILE NAME</TableColumn>
             <TableColumn>DESCRIPTION</TableColumn>
