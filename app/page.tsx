@@ -143,16 +143,18 @@ export default function Home() {
         <Table aria-label="Output files">
           <TableHeader>
             <TableColumn>FILE NAME</TableColumn>
-            <TableColumn>DESCRIPTION</TableColumn>
-            <TableColumn>ACTION</TableColumn>
+            <TableColumn className="w-[10rem]">DESCRIPTION</TableColumn>
+            <TableColumn align="center" className="w-[5rem]">
+              ACTION
+            </TableColumn>
           </TableHeader>
           <TableBody items={outputs}>
             {(item: OutputFile) => (
               <TableRow key={item.description}>
-                <TableCell className="pl-0">
-                  <Code className="m-0 text-xs font-semibold">
+                <TableCell>
+                  <p className="text-xs font-semibold break-all line-clamp-2 font-mono">
                     {item.filename}
-                  </Code>
+                  </p>
                 </TableCell>
                 <TableCell>{item.description}</TableCell>
                 <TableCell>
@@ -160,11 +162,10 @@ export default function Home() {
                     isExternal
                     showAnchorIcon
                     anchorIcon={<DownloadIcon />}
+                    color="foreground"
                     download={item.filename}
                     href={URL.createObjectURL(item.blob)}
-                  >
-                    Download
-                  </Link>
+                  />
                 </TableCell>
               </TableRow>
             )}
