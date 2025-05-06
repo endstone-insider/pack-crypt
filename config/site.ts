@@ -1,8 +1,8 @@
 export type SiteConfig = typeof siteConfig;
 
 export const siteConfig = {
-  name: "Next.js + HeroUI",
-  description: "Make beautiful websites regardless of your design experience.",
+  name: "PackCrypt - Simple, fast, secure client-side file encryption.",
+  description: "Simple, fast, secure client-side file encryption.",
   links: {
     github: "https://github.com/EndstoneMC/pack-crypt",
     discord: "https://discord.gg/xxgPuc2XN9",
